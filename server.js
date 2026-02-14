@@ -69,6 +69,15 @@ app.get("/gate-data", async (req, res) => {
   }
 });
 
+app.get("/", async (req, res) => {
+  try {
+    const def = "Backend Connected Successfully"
+    res.json(def);
+  } catch (error) {
+    res.status(500).send("Error While Dploying Backend");
+  }
+});
+
 /* ---------------- Server ---------------- */
 
 app.listen(5000, () => {
