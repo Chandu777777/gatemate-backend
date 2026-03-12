@@ -4,30 +4,40 @@ const cors = require("cors");
 
 const app = express();
 
+/* ---------------- Middleware ---------------- */
+
 app.use(cors());
 app.use(express.json());
 
-mongoose
-  .connect(
-    "mongodb+srv://22pa1a5745_db_user:Chandu%405759@cluster0.fgj4bwx.mongodb.net/gatemate?retryWrites=true&w=majority"
-  )
-  .then(() => console.log("MongoDB Connected Successfully"))
-  .catch((err) => console.log("MongoDB Connection Error:", err));
+/* ---------------- MongoDB Connection ---------------- */
+
+mongoose.connect(
+  "mongodb+srv://22pa1a5745_db_user:Chandu%405759@cluster0.fgj4bwx.mongodb.net/gatemate?retryWrites=true&w=majority"
+)
+.then(() => console.log("MongoDB Connected Successfully"))
+.catch((err) => console.log("MongoDB Connection Error:", err));
+
+/* ---------------- Schema ---------------- */
 
 const gateSchema = new mongoose.Schema({
 
-  gateId: String,
+  gateId: {
+    type: String,
+    required: true
+  },
+
   angle: Number,
+
   status: String,
 
   lat: {
     type: Number,
-    default: 0
+    default: 16.54376   // default railway gate latitude
   },
 
   lng: {
     type: Number,
-    default: 0
+    default: 81.60191   // default railway gate longitude
   },
 
   time: {
@@ -39,17 +49,29 @@ const gateSchema = new mongoose.Schema({
 
 const Gate = mongoose.model("Gate", gateSchema);
 
-/* Store or Update Gate Data */
+/* ---------------- Update Gate API ---------------- */
 
 app.post("/update-gate", async (req, res) => {
 
   try {
 
+    console.log("Incoming Data:", req.body);
+
     const { gateId, angle, status, lat, lng } = req.body;
+
+    if (!gateId) {
+      return res.status(400).send("Gate ID is required");
+    }
 
     await Gate.findOneAndUpdate(
       { gateId: gateId },
-      { angle, status, lat, lng, time: Date.now() },
+      {
+        angle: angle,
+        status: status,
+        lat: lat || 16.54376,
+        lng: lng || 81.60191,
+        time: Date.now()
+      },
       { upsert: true, new: true }
     );
 
@@ -57,43 +79,48 @@ app.post("/update-gate", async (req, res) => {
 
   } catch (error) {
 
-    console.error(error);
+    console.error("Update Error:", error);
     res.status(500).send("Error storing gate data");
 
   }
 
 });
 
-/* Get Gate Data */
+/* ---------------- Get Gate Data API ---------------- */
 
 app.get("/gate-data", async (req, res) => {
 
   try {
 
-    const data = await Gate.find();
+    const data = await Gate.find().sort({ time: -1 });
 
     res.json(data);
 
   } catch (error) {
 
+    console.error("Fetch Error:", error);
     res.status(500).send("Error fetching data");
 
   }
 
 });
 
-/* Test Route */
+/* ---------------- Test Route ---------------- */
 
 app.get("/", (req, res) => {
 
-  res.json("Backend Connected Successfully");
+  res.json({
+    message: "GateMate Backend Connected Successfully"
+  });
 
 });
 
-/* Server */
+/* ---------------- Server ---------------- */
 
-app.listen(5000, () => {
+const PORT = process.env.PORT || 5000;
 
-  console.log("Server running on port 5000");
+app.listen(PORT, () => {
+
+  console.log(`Server running on port ${PORT}`);
 
 });
